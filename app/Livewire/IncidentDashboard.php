@@ -42,29 +42,24 @@ class IncidentDashboard extends Component {
 			$this->resetPage();
 		}
 	}
-
-	/*.s. Vacía los filtros y vuelve a la primera página del listado. */
-
+	
 	public function openDetail(int $id): void {
 		Incident::findOrFail($id);
 		$this->selectedId = $id;
 	}
-
-	/*.s. Comprueba que la incidencia exista y selecciona su ID para abrir el detalle. */
-
+	
+	/*.s. Quita la selección para cerrar el detalle de la incidencia. */
 	#[On('incident-status-changed')]
 	public function closeDetail(): void {
 		$this->selectedId = null;
 	}
-
-	/*.s. Quita la selección para cerrar el detalle de la incidencia. */
-
+	
+	/*.s. Cierra el formulario de creación de incidencias. */
 	public function closeCreate(): void {
 		$this->creating = false;
 	}
-
-	/*.s. Cierra el formulario de creación de incidencias. */
-
+	
+	/*.s. Al recibir la creación, cierra el formulario, limpia los filtros y muestra la confirmación sin abrir el detalle. */
 	#[On('incident-created')]
 	public function incidentCreated(int $id): void {
 		$this->creating = false;
@@ -72,16 +67,13 @@ class IncidentDashboard extends Component {
 		$this->selectedId = null;
 		session()->flash('notice', 'Incidencia creada correctamente.');
 	}
-
-	/*.s. Al recibir la creación, cierra el formulario, limpia los filtros y muestra la confirmación sin abrir el detalle. */
-
+	
 	public function clearFilters(): void {
 		$this->reset('search', 'status', 'priority');
 		$this->resetPage();
 	}
 
 	/*.s. Recibe el evento de actualización para que Livewire vuelva a renderizar el listado y sus contadores. */
-
 	#[On('incident-updated')]
 	public function refreshList(): void {
 	}
