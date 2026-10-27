@@ -8,32 +8,31 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Incident extends Model
-{
-    use HasFactory;
+class Incident extends Model {
+	use HasFactory;
 
-    protected $fillable = [
-        'title', 'description', 'status', 'priority', 'requester_name', 'assigned_to',
-    ];
+	protected $fillable = [
+		'title', 'description', 'status', 'priority', 'requester_name', 'assigned_to',
+	];
 
-    /*.s. Convierte el estado y la prioridad almacenados en sus enums correspondientes. */
-    protected function casts(): array
-    {
-        return [
-            'status' => IncidentStatus::class,
-            'priority' => IncidentPriority::class,
-        ];
-    }
+	/*.s. Convierte el estado y la prioridad almacenados en sus enums correspondientes. */
 
-    /*.s. Define la relación con el historial, ordenado del evento más antiguo al más reciente. */
-    public function logs(): HasMany
-    {
-        return $this->hasMany(IncidentLog::class)->orderBy('created_at')->orderBy('id');
-    }
+	public function logs(): HasMany {
+		return $this->hasMany(IncidentLog::class)->orderBy('created_at')->orderBy('id');
+	}
 
-    /*.s. Define la relación con los comentarios, ordenados del más reciente al más antiguo. */
-    public function comments(): HasMany
-    {
-        return $this->hasMany(IncidentComment::class)->orderByDesc('created_at')->orderByDesc('id');
-    }
+	/*.s. Define la relación con el historial, ordenado del evento más antiguo al más reciente. */
+
+	public function comments(): HasMany {
+		return $this->hasMany(IncidentComment::class)->orderByDesc('created_at')->orderByDesc('id');
+	}
+
+	/*.s. Define la relación con los comentarios, ordenados del más reciente al más antiguo. */
+
+	protected function casts(): array {
+		return [
+			'status'   => IncidentStatus::class,
+			'priority' => IncidentPriority::class,
+		];
+	}
 }

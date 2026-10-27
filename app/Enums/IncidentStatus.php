@@ -20,6 +20,13 @@ enum IncidentStatus: string {
 	}
 
 	/*.s. Devuelve los estados a los que se permite pasar desde el estado actual. */
+
+	public function canTransitionTo(self $target): bool {
+		return in_array($target, $this->allowedTransitions(), true);
+	}
+
+	/*.s. Indica si el estado de destino está incluido entre las transiciones permitidas. */
+
 	/** @return list<self> */
 	public function allowedTransitions(): array {
 		return match ($this) {
@@ -27,10 +34,5 @@ enum IncidentStatus: string {
 			self::InReview => [self::Blocked, self::Resolved],
 			self::Resolved => [self::Open],
 		};
-	}
-
-	/*.s. Indica si el estado de destino está incluido entre las transiciones permitidas. */
-	public function canTransitionTo(self $target): bool {
-		return in_array($target, $this->allowedTransitions(), true);
 	}
 }
