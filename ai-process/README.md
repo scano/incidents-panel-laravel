@@ -121,3 +121,20 @@ Codex para revisar el enunciado, proponer el alcance y preparar el entorno de de
 - Petición: traducir los literales de paginación y corregir los botones oscuros y la falta de separación del resumen.
 - Se sustituyó la vista de paginación predeterminada por una vista del proyecto, con traducciones españolas, resumen separado y controles claros con estado activo índigo. En móvil se muestran Anterior, página actual y Siguiente.
 - Verificación: doce pruebas relacionadas correctas (88 aserciones), compilación de Vite y navegación real entre las dos páginas. Se revisó el diseño en escritorio/móvil y con preferencia oscura del sistema, comprobando que los botones mantienen fondo blanco.
+
+## Scroll independiente en el listado de incidencias
+
+- Petición: dar scroll vertical propio al listado principal.
+- Cambios: distribución vertical del panel con área de filas desplazable, cabeceras de columna fijas y filtros/paginación fuera del scroll. Se ajustó el espacio de la cabecera y los filtros en móvil para reservar altura al listado. El scroll vuelve arriba al cambiar página/filtros o recibir una creación.
+- Verificación: compilación de Vite y doce pruebas relacionadas correctas (88 aserciones). En navegador se comprobó que la paginación no se mueve, la cabecera queda adherida y cambiar página o filtro restablece el scroll. Se revisaron escritorio (1440 × 900) y móvil (390 × 844), con la paginación dentro del viewport y sin scroll de página en esos tamaños. Las acciones verificadas solo consultaron datos del panel.
+
+## Scroll de página en móvil
+
+- Por preferencia del usuario, el scroll independiente del listado se limita a escritorio (desde 1024 px). En móvil el listado crece con su contenido y se desplaza toda la página.
+- Verificación: compilación de Vite y comprobación en navegador a 390 × 844 (sin scroll interno) y 1440 × 900 (scroll independiente del listado).
+
+## Retirada de tablas sin uso
+
+- A petición del usuario, una nueva migración elimina `jobs`, `failed_jobs`, `job_batches` y `password_reset_tokens`. Se conservan las migraciones originales y la reversión recrea las estructuras anteriores.
+- Se comprobó que las cuatro tablas estaban vacías antes de aplicar la migración en la base del panel. Se mantienen 2 usuarios, 20 incidencias, 70 logs, 27 comentarios y 9 sesiones, además de las tablas de caché e historial de migraciones.
+- Verificación: Pint correcto y suite completa en MySQL de pruebas con 64 casos y 373 aserciones correctas, incluida la reversión y reaplicación conservando los datos de la aplicación. `/login` y `/up` responden HTTP 200.

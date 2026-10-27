@@ -1,6 +1,7 @@
 <div class="detail-content" :class="{ 'scrollable-tab-active': activeTab === 'comments' || activeTab === 'history' }"
      @comment-added="$nextTick(() => $refs.commentsList.scrollTop = 0)" x-data="{
     activeTab: 'data',
+    confirmationTarget: '',
     tabs: ['data', 'comments', 'history'],
     selectTab(tab, focus = false) {
         this.activeTab = tab;
@@ -58,8 +59,12 @@
 				<h3 id="change-heading">Cambiar estado</h3>
 				<!-- <button type="button" class="text-button" wire:click="refreshIncident">Actualizar datos</button> -->
 			</div>
-			<form wire:submit="changeStatus" x-data
-			      @submit.capture="if (['bloqueada', 'resuelta'].includes($wire.target) && !window.confirm($wire.target === 'resuelta' ? '¿Confirmas que la incidencia está resuelta?' : '¿Confirmas que quieres bloquear la incidencia?')) { $event.preventDefault(); $event.stopImmediatePropagation(); }">
+			<form @submit.prevent="if (['bloqueada', 'resuelta'].includes($wire.target)) {
+                    confirmationTarget = $wire.target;
+                    $refs.statusConfirmation.showModal();
+                } else {
+                    $wire.changeStatus();
+                }">
 				<div class="form-grid">
 					<x-field name="target" label="Nuevo estado">
 						<select id="target" wire:model.live="target">
@@ -83,6 +88,30 @@
 					</button>
 				</div>
 			</form>
+
+            <dialog x-ref="statusConfirmation" wire:ignore.self class="modal status-confirmation"
+                    aria-labelledby="status-confirmation-title" aria-describedby="status-confirmation-description"
+                    @click="if ($event.target === $el) $el.close()">
+                <section class="modal-surface">
+                    <header class="modal-header">
+                        <h2 id="status-confirmation-title" x-text="confirmationTarget === 'bloqueada' ? 'Bloquear incidencia' : 'Resolver incidencia'"></h2>
+                        <button type="button" class="icon-button" aria-label="Cerrar confirmación"
+                                @click="$refs.statusConfirmation.close()">×</button>
+                    </header>
+                    <div class="status-confirmation-body">
+                        <p id="status-confirmation-description" x-text="confirmationTarget === 'bloqueada'
+                            ? 'La incidencia pasará de En revisión a Bloqueada.'
+                            : 'La incidencia se marcará como Resuelta.'"></p>
+                        <div class="form-actions">
+                            <button type="button" class="button-secondary" autofocus
+                                    @click="$refs.statusConfirmation.close()">Cancelar</button>
+                            <button type="button" class="button-primary" wire:loading.attr="disabled"
+                                    @click="$refs.statusConfirmation.close(); $wire.changeStatus()"
+                                    x-text="confirmationTarget === 'bloqueada' ? 'Bloquear incidencia' : 'Resolver incidencia'"></button>
+                        </div>
+                    </div>
+                </section>
+            </dialog>
 		</section>
 	</section>
 

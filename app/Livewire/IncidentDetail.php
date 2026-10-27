@@ -27,17 +27,20 @@ class IncidentDetail extends Component
 
     public string $notice = '';
 
+    /*.s. Exige una sesión autenticada en cada petición del componente. */
     public function boot(): void
     {
         abort_unless(Auth::check(), 403);
     }
 
+    /*.s. Guarda el ID de la incidencia al abrir el detalle y carga su estado inicial. */
     public function mount(int $incidentId): void
     {
         $this->incidentId = $incidentId;
         $this->refreshIncident();
     }
 
+    /*.s. Actualiza el estado observado desde la base de datos, selecciona la primera transición permitida y limpia errores. */
     public function refreshIncident(): void
     {
         $incident = Incident::findOrFail($this->incidentId);
@@ -46,12 +49,13 @@ class IncidentDetail extends Component
         $this->resetValidation();
     }
 
+    /*.s. Guarda el cambio comprobando el estado observado y notifica al panel para cerrar el detalle y actualizar el listado solo si tiene éxito. */
     public function changeStatus(IncidentService $service): void
     {
         $this->reset('notice');
         $this->validate(['target' => ['required', Rule::enum(IncidentStatus::class)]]);
 
-        // Keep the status seen when opening or explicitly refreshing the detail.
+        /*.s. Conserva el estado observado al abrir o actualizar el detalle para detectar cambios de otra sesión. */
         $expected = new Incident;
         $expected->id = $this->incidentId;
         $expected->status = IncidentStatus::from($this->observedStatus);
@@ -61,10 +65,11 @@ class IncidentDetail extends Component
         $this->target = $current->status->allowedTransitions()[0]->value;
         $this->reason = '';
         $this->resetValidation();
-        $this->notice = 'Estado actualizado. El cambio se ha registrado en el historial.';
         $this->dispatch('incident-updated');
+        $this->dispatch('incident-status-changed');
     }
 
+    /*.s. Publica el comentario con el usuario de la sesión, limpia el campo y notifica la actualización sin mostrar confirmación de éxito. */
     public function addComment(IncidentService $service): void
     {
         $this->reset('notice');
@@ -75,6 +80,7 @@ class IncidentDetail extends Component
         $this->dispatch('incident-updated');
     }
 
+    /*.s. Carga la incidencia con su historial y comentarios y prepara la vista junto con el estado observado. */
     public function render(): View
     {
         return view('livewire.incident-detail', [

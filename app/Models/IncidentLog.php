@@ -12,16 +12,19 @@ class IncidentLog extends Model
 
     protected $fillable = ['user_id', 'action', 'old_value', 'new_value', 'user_name', 'metadata'];
 
+    /*.s. Convierte la acción a su enum, los metadatos a un array y los campos de duplicado a fecha y entero. */
     protected function casts(): array
     {
         return ['action' => IncidentAction::class, 'metadata' => 'array', 'voided_at' => 'datetime', 'duplicate_of_id' => 'integer'];
     }
 
+    /*.s. Relaciona el evento con la cuenta que realizó la acción, cuando existe una cuenta vinculada. */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /*.s. Relaciona el evento del historial con la incidencia a la que pertenece. */
     public function incident(): BelongsTo
     {
         return $this->belongsTo(Incident::class);

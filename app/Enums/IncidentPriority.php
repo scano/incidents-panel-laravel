@@ -9,6 +9,7 @@ enum IncidentPriority: string
     case High = 'alta';
     case Critical = 'critica';
 
+    /*.s. Devuelve el nombre en español de esta prioridad. */
     public function label(): string
     {
         return match ($this) {
@@ -19,6 +20,7 @@ enum IncidentPriority: string
         };
     }
 
+    /*.s. Devuelve el símbolo visual asociado a esta prioridad. */
     public function symbol(): string
     {
         return match ($this) {

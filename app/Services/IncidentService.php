@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 
 class IncidentService
 {
+    /*.s. Valida los datos y crea la incidencia abierta junto con su evento de creación en una única transacción. */
     public function create(array $input, ?User $actor = null): Incident
     {
         $data = Validator::make($this->trimStrings($input), [
@@ -38,7 +39,7 @@ class IncidentService
         });
     }
 
-    /** The supplied model carries the status seen by the caller. */
+    /*.s. Comprueba el estado observado y la transición permitida; guarda el cambio y su historial de forma atómica, exigiendo motivo al reabrir. */
     public function changeStatus(
         Incident $incident,
         IncidentStatus $target,
@@ -91,6 +92,7 @@ class IncidentService
         });
     }
 
+    /*.s. Valida el texto y el autor y guarda el comentario junto con su evento en el historial dentro de una transacción. */
     public function addComment(Incident $incident, User|string $author, string $body): IncidentComment
     {
         $data = Validator::make($this->trimStrings([
@@ -115,6 +117,7 @@ class IncidentService
         });
     }
 
+    /*.s. Elimina los espacios de los extremos de los valores de texto sin modificar los demás tipos de datos. */
     private function trimStrings(array $input): array
     {
         return array_map(fn ($value) => is_string($value) ? trim($value) : $value, $input);

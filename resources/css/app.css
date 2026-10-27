@@ -68,11 +68,13 @@
 	}
 
 	.workspace {
-		@apply mx-auto max-w-[1650px] px-5 pb-5 lg:px-10 xl:px-14;
+		@apply mx-auto flex max-w-[1650px] flex-col px-5 pb-5 lg:h-dvh lg:px-10 xl:px-14;
 	}
 
+    .workspace > :not(.list-section) { @apply shrink-0; }
+
 	.topline {
-		@apply flex h-[60px] items-center md:h-[76px] justify-between border-b border-slate-200 text-xs text-slate-500;
+		@apply flex h-[55px] items-center justify-between border-b border-slate-200 text-xs text-slate-500;
 	}
 
 	.topline span span {
@@ -124,19 +126,21 @@
 	}
 
 	.page-header {
-		@apply flex flex-wrap items-center justify-between gap-5 pb-6 pt-6 md:pb-9 md:pt-10;
+		@apply flex flex-wrap items-center justify-between gap-3 pb-4 pt-4 md:gap-5 md:pb-9 md:pt-10;
 	}
+
+    .page-header .eyebrow { @apply hidden sm:block; }
 
 	.eyebrow {
 		@apply mb-2 text-[10px] font-semibold tracking-[.16em] text-indigo-600;
 	}
 
 	.page-header h1 {
-		@apply text-[34px] leading-tight tracking-tight;
+		@apply text-[28px] leading-tight tracking-tight md:text-[34px];
 	}
 
 	.page-header p:not(.eyebrow) {
-		@apply mt-3 text-sm text-slate-500;
+		@apply mt-2 text-sm text-slate-500 md:mt-3;
 	}
 
 	.button-primary {
@@ -194,15 +198,23 @@
 	}
 
 	.list-section {
-		@apply rounded-lg border border-slate-200 bg-white p-5 lg:p-6;
+		@apply flex flex-col rounded-lg border border-slate-200 bg-white p-5 lg:min-h-[18rem] lg:flex-1 lg:overflow-hidden lg:p-6;
 	}
+
+    .list-section > .section-heading,
+	.list-section > .filters,
+	.list-section > .list-footer {
+		@apply shrink-0;
+	}
+
+    .incident-list { @apply lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain; scrollbar-gutter: stable; }
 
 	.filters {
 		@apply mb-5 flex flex-wrap items-center gap-3;
 	}
 
 	.filters > div:not(.search-field) {
-		@apply min-w-[160px] flex-1 md:flex-none;
+		@apply min-w-0 flex-1 basis-[40%] md:min-w-[160px] md:flex-none md:basis-auto;
 	}
 
 	.filters select {
@@ -222,11 +234,12 @@
 	}
 
 	.list-labels {
-		@apply hidden grid-cols-[minmax(180px,2.3fr)_1.1fr_.8fr_1.2fr_.9fr] gap-4 border-y border-slate-100 py-3 text-[9px] font-medium tracking-[.07em] text-slate-400 xl:grid;
+		@apply sticky top-0 z-10 hidden grid-cols-[minmax(180px,2.3fr)_1.1fr_.8fr_1.2fr_.9fr] gap-4 border-y border-slate-100 bg-white py-3 text-[9px] font-medium tracking-[.07em] text-slate-400 xl:grid;
 	}
 
 	.incident-row {
-		@apply relative grid grid-cols-2 items-center gap-4 border-b border-slate-100 px-2 py-2 transition-colors hover:bg-slate-50 xl:grid-cols-[minmax(180px,2.3fr)_1.1fr_.8fr_1.2fr_.9fr];
+		@apply relative grid grid-cols-2 items-center gap-4 border-b border-slate-100 px-2 py-2 transition-colors cursor-pointer
+		hover:bg-slate-50 xl:grid-cols-[minmax(180px,2.3fr)_1.1fr_.8fr_1.2fr_.9fr];
 	}
 
 	.incident-row.is-blocked {
@@ -404,6 +417,18 @@
 	.drawer .detail-content {
 		@apply min-h-0 flex-1 overflow-y-auto;
 	}
+
+    .status-confirmation {
+        @apply max-w-md;
+    }
+
+    .drawer .status-confirmation .modal-surface {
+        @apply block h-auto min-h-0 overflow-visible;
+    }
+
+    .status-confirmation-body {
+        @apply space-y-6 px-6 py-5 text-sm leading-relaxed text-slate-600;
+    }
 
 	.drawer .detail-content.scrollable-tab-active {
 		@apply flex flex-col overflow-hidden;

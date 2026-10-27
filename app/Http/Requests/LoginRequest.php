@@ -9,11 +9,13 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    /*.s. Permite enviar la solicitud de acceso sin exigir una sesión previa. */
     public function authorize(): bool
     {
         return true;
     }
 
+    /*.s. Normaliza el correo eliminando espacios de los extremos y convirtiéndolo a minúsculas antes de validarlo. */
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('email'))) {
@@ -21,11 +23,13 @@ class LoginRequest extends FormRequest
         }
     }
 
+    /*.s. Define los campos obligatorios y los límites de formato y longitud de las credenciales. */
     public function rules(): array
     {
         return ['email' => ['required', 'string', 'email', 'max:254'], 'password' => ['required', 'string', 'max:255']];
     }
 
+    /*.s. Limita los intentos por correo e IP, comprueba las credenciales y limpia el contador cuando el acceso es correcto. */
     public function authenticate(): void
     {
         $key = 'login:'.hash('sha256', $this->string('email')->toString().'|'.$this->ip());

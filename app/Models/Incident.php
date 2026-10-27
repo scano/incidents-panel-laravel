@@ -16,6 +16,7 @@ class Incident extends Model
         'title', 'description', 'status', 'priority', 'requester_name', 'assigned_to',
     ];
 
+    /*.s. Convierte el estado y la prioridad almacenados en sus enums correspondientes. */
     protected function casts(): array
     {
         return [
@@ -24,11 +25,13 @@ class Incident extends Model
         ];
     }
 
+    /*.s. Define la relación con el historial, ordenado del evento más antiguo al más reciente. */
     public function logs(): HasMany
     {
         return $this->hasMany(IncidentLog::class)->orderBy('created_at')->orderBy('id');
     }
 
+    /*.s. Define la relación con los comentarios, ordenados del más reciente al más antiguo. */
     public function comments(): HasMany
     {
         return $this->hasMany(IncidentComment::class)->orderByDesc('created_at')->orderByDesc('id');

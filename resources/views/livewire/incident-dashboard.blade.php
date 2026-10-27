@@ -1,4 +1,6 @@
-<div class="app-shell">
+<div class="app-shell" x-data
+     x-effect="[$wire.search, $wire.status, $wire.priority, $wire.paginators.page]; $nextTick(() => $refs.incidentList.scrollTop = 0)"
+     @incident-created.window="$nextTick(() => $refs.incidentList.scrollTop = 0)">
 	<main id="workspace" class="workspace">
 
 		<div class="topline">
@@ -14,7 +16,7 @@
 
 		<header class="page-header">
 			<div><p class="eyebrow">CONTROL Y SEGUIMIENTO</p>
-				<h1>Panel operativo</h1>
+				<h1>Panel de incidencias</h1>
 				<p>Consulta, prioriza y resuelve las incidencias de tu equipo.</p></div>
 			<button type="button" class="button-primary" wire:click="$set('creating', true)"><span
 					aria-hidden="true">＋</span> Nueva incidencia
@@ -63,17 +65,15 @@
 				@endif
 			</div>
 			<p class="sr-only" role="status" wire:loading>Actualizando incidencias…</p>
-			<div class="incident-list" wire:loading.class="is-loading">
+			<div class="incident-list" x-ref="incidentList" tabindex="0" role="region" aria-label="Listado de incidencias" wire:loading.class="is-loading">
 				<div class="list-labels" aria-hidden="true">
 					<span>INCIDENCIA</span><span>ESTADO</span><span>PRIORIDAD</span><span>RESPONSABLE</span><span>CREADA</span>
 				</div>
 				@forelse($incidents as $incident)
-					<article wire:key="incident-{{ $incident->id }}" class="incident-row {{ $incident->status === \App\Enums\IncidentStatus::Blocked ? 'is-blocked' : '' }}">
+					<article wire:click="openDetail({{ $incident->id }})" wire:key="incident-{{ $incident->id }}" class="incident-row {{ $incident->status === \App\Enums\IncidentStatus::Blocked ? 'is-blocked' : '' }}">
 						<div class="incident-title">
 							<span class="incident-number">INC-{{ str_pad($incident->id, 4, '0', STR_PAD_LEFT) }}</span>
-							<h3>
-								<button type="button" wire:click="openDetail({{ $incident->id }})">{{ $incident->title }}</button>
-							</h3>
+							<h3>{{ $incident->title }}</h3>
 							<p>{{ $incident->requester_name }}</p></div>
 						<div>
 							<x-status-badge :status="$incident->status"/>
@@ -107,8 +107,8 @@
 				@endforelse
 			</div>
 			<footer class="list-footer">
-                {{ $incidents->onEachSide(1)->links('pagination.incidents') }}
-            </footer>
+				{{ $incidents->onEachSide(1)->links('pagination.incidents') }}
+			</footer>
 		</section>
 	</main>
 

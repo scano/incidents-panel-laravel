@@ -17,6 +17,7 @@ class AuditIncidents extends Command
 
     protected $description = 'Diagnosticar inconsistencias y marcar duplicados conservando la evidencia';
 
+    /*.s. Valida las opciones, ejecuta la auditoría y muestra los hallazgos y el código de salida correspondiente. */
     public function handle(IncidentAuditService $audit): int
     {
         if ($this->option('fix') && $this->option('dry-run')) {
@@ -25,6 +26,7 @@ class AuditIncidents extends Command
             return self::INVALID;
         }
 
+        /*.s. Comprueba que el ID solicitado corresponda a una incidencia existente. */
         $id = $this->option('incident');
         if ($id !== null && (! ctype_digit($id) || (int) $id < 1 || ! DB::table('incidents')->where('id', $id)->exists())) {
             $this->error('El ID debe corresponder a una incidencia existente.');
@@ -53,8 +55,11 @@ class AuditIncidents extends Command
         }
 
         $this->table(['Incidencia', 'Código', 'Log', 'Decisión', 'Detalle'], array_map(fn ($finding) => [
-            $finding['incident_id'], $finding['code'], $finding['log_id'] ?? '-',
-            $finding['fixable'] ? 'Marcar duplicado con --fix' : 'Revisión manual', $finding['detail'],
+            $finding['incident_id'],
+            $finding['code'],
+            $finding['log_id'] ?? '-',
+            $finding['fixable'] ? 'Marcar duplicado con --fix' : 'Revisión manual',
+            $finding['detail'],
         ], $result['findings']));
         $this->warn('Hallazgos pendientes: '.count($result['findings']));
 

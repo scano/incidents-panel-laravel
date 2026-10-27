@@ -20,11 +20,13 @@ class CreateIncident extends Component
 
     public string $assigned_to = '';
 
+    /*.s. Exige una sesión autenticada en cada petición del componente. */
     public function boot(): void
     {
         abort_unless(Auth::check(), 403);
     }
 
+    /*.s. Limpia errores anteriores, crea la incidencia con el usuario de la sesión y notifica su creación al panel. */
     public function save(IncidentService $service): void
     {
         $this->resetValidation();
@@ -32,6 +34,7 @@ class CreateIncident extends Component
         $this->dispatch('incident-created', id: $incident->id);
     }
 
+    /*.s. Prepara la vista del formulario con las prioridades disponibles. */
     public function render(): View
     {
         return view('livewire.create-incident', ['priorities' => IncidentPriority::cases()]);

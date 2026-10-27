@@ -89,9 +89,14 @@ class IncidentPanelTest extends TestCase
         Livewire::test(IncidentDetail::class, ['incidentId' => $incident->id])
             ->set('target', 'en_revision')->call('changeStatus')
             ->assertHasNoErrors()->assertSet('observedStatus', 'en_revision')->assertDispatched('incident-updated')
-            ->assertSee('Estado actualizado');
+            ->assertDispatched('incident-status-changed');
         $this->assertDatabaseHas('incidents', ['id' => $incident->id, 'status' => 'en_revision']);
         $this->assertDatabaseHas('incident_logs', ['incident_id' => $incident->id, 'old_value' => 'abierta', 'new_value' => 'en_revision', 'user_name' => 'Luis']);
+
+        Livewire::test(IncidentDashboard::class)
+            ->call('openDetail', $incident->id)->assertSet('selectedId', $incident->id)
+            ->dispatch('incident-updated')->assertSet('selectedId', $incident->id)
+            ->dispatch('incident-status-changed')->assertSet('selectedId', null);
     }
 
     public function test_detail_preserves_observed_status_until_explicit_refresh(): void
@@ -103,6 +108,7 @@ class IncidentPanelTest extends TestCase
         $component->set('target', 'en_revision')->call('changeStatus')->assertHasErrors('status')
             ->assertSee('La incidencia ha cambiado')->assertSet('observedStatus', 'abierta')
             ->assertNotDispatched('incident-updated')
+            ->assertNotDispatched('incident-status-changed')
             ->call('refreshIncident')->assertSet('observedStatus', 'en_revision')->assertHasNoErrors();
         $this->assertDatabaseCount('incident_logs', 2);
     }

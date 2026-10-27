@@ -10,6 +10,7 @@ enum IncidentAction: string
     case CommentAdded = 'comment_added';
     case DuplicateMarked = 'duplicate_marked';
 
+    /*.s. Devuelve el texto en español que representa esta acción en el historial. */
     public function label(): string
     {
         return match ($this) {

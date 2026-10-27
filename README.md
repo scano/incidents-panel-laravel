@@ -129,7 +129,7 @@ Cambiar las variables de usuario o contraseña en `.env` no cambia usuarios de u
 ## Uso del panel
 
 - **Nueva incidencia** abre el formulario. Al guardar, cierra el formulario, limpia los filtros, actualiza el listado y muestra una confirmación sin abrir el detalle.
-- La búsqueda consulta título, descripción, solicitante y responsable. Se combina con estado y prioridad; los filtros se reflejan en la URL y reinician la paginación. El listado muestra diez incidencias por página, con la más reciente primero. La paginación usa textos en español y controles claros separados del resumen; en móvil muestra Anterior, posición de página y Siguiente.
+- La búsqueda consulta título, descripción, solicitante y responsable. Se combina con estado y prioridad; los filtros se reflejan en la URL y reinician la paginación. El listado muestra diez incidencias por página, con la más reciente primero. En escritorio las filas tienen scroll vertical independiente, con filtros y paginación fuera del área desplazable y cabeceras de columna visibles. En móvil y pantallas de menos de 1024 px se desplaza toda la página, sin limitar la altura del listado. Al cambiar de página o filtro, o crear una incidencia, el listado vuelve al inicio. La paginación usa textos en español y controles claros separados del resumen; en móvil muestra Anterior, posición de página y Siguiente.
 - Los contadores muestran totales globales, independientemente de los filtros. Pulsarlos activa o desactiva el filtro del estado correspondiente. Las incidencias bloqueadas se resaltan en el listado.
 - El título de una incidencia abre su detalle con las pestañas Datos de la incidencia, Comentarios e Histórico. El histórico tiene scroll propio y mantiene visibles la cabecera y las pestañas. La cabecera mantiene visibles el título, estado y prioridad. Las pestañas se manejan también con flechas, Inicio y Fin, y conservan los borradores al cambiar de sección. El actor se obtiene de la sesión y las reaperturas exigen un motivo. Bloquear y resolver solicitan confirmación en el navegador.
 - Si cambia el estado desde otra sesión, el intento de actualización se rechaza. **Actualizar datos** obtiene el estado actual para continuar.
@@ -253,6 +253,8 @@ Se retiraron la bienvenida, el comando de ejemplo `inspire` y `routes/console.ph
 Vite compila el CSS; Livewire proporciona Alpine y el JavaScript de interacción. Se eliminaron Tinker, Pail, Pao, Concurrently y Multiplex, y los scripts de creación/desarrollo heredados. El arranque documentado sigue siendo `./bin/setup` y `docker compose up -d`. La cola queda configurada como síncrona, sin workers.
 
 Se conservan las migraciones iniciales ya aplicadas para mantener su historial, incluida la que crea `sessions`. Las sesiones y la caché siguen utilizando MySQL. Tras añadir el login, el guard usa el modelo `User` de este proyecto; solo se ofrecen acceso y cierre de sesión. Se mantiene la configuración del framework y las herramientas de desarrollo que utiliza este proyecto, como PHPUnit, Pint y Boost.
+
+Una migración posterior elimina `jobs`, `failed_jobs`, `job_batches` y `password_reset_tokens`, porque el proyecto no utiliza colas en base de datos ni recuperación de contraseñas. Su reversión restaura la estructura de esas tablas.
 
 ## Identidad en el historial
 

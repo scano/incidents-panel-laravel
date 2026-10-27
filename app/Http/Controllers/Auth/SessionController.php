@@ -10,11 +10,13 @@ use Illuminate\Support\Facades\Auth;
 
 class SessionController
 {
+    /*.s. Muestra el formulario de inicio de sesión. */
     public function create(): View
     {
         return view('auth.login');
     }
 
+    /*.s. Autentica las credenciales, regenera la sesión y redirige al destino solicitado o al panel. */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
@@ -23,6 +25,7 @@ class SessionController
         return redirect()->intended(route('incidents.index'));
     }
 
+    /*.s. Cierra la sesión, invalida sus datos y renueva el token CSRF antes de volver al formulario de acceso. */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::logout();
