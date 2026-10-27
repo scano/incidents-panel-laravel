@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(dirname "$0")/.."
+
+if [ ! -f .env ]; then
+    cp .env.example .env
+fi
+
+docker compose build app
+docker compose run --rm --no-deps app composer install --no-interaction --prefer-dist
+if ! grep -Eq '^APP_KEY=.+$' .env; then
+    docker compose run --rm --no-deps app php artisan key:generate --ansi
+fi
+docker compose run --rm --no-deps node npm ci
+docker compose run --rm --no-deps node npm run build
+docker compose up -d --wait mysql
+docker compose exec -T mysql sh /docker-entrypoint-initdb.d/10-testing.sh
+docker compose run --rm app php artisan migrate --force
+docker compose run --rm app php artisan db:seed --class=UserSeeder --force
+docker compose up -d app node
+
+echo 'Entorno preparado. Consulta APP_URL en .env (por defecto http://localhost:8000).'

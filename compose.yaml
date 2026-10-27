@@ -1,0 +1,52 @@
+name: com-incidencias
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    ports:
+      - "127.0.0.1:${APP_PORT:-8000}:8000"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+    init: true
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-incidencias}
+      MYSQL_USER: ${DB_USERNAME:-incidencias}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-local_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-local_root_password}
+      MYSQL_TEST_PASSWORD: ${DB_TEST_PASSWORD:-local_test_password}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init-testing.sh:/docker-entrypoint-initdb.d/10-testing.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql --protocol=TCP -h 127.0.0.1 -u\"$$MYSQL_USER\" \"$$MYSQL_DATABASE\" -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  node:
+    image: node:24-bookworm-slim
+    working_dir: /var/www/html
+    environment:
+      VITE_PORT: ${VITE_PORT:-5173}
+    ports:
+      - "127.0.0.1:${VITE_PORT:-5173}:5173"
+    volumes:
+      - .:/var/www/html
+      - node_modules:/var/www/html/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    init: true
+
+volumes:
+  mysql_data:
+  node_modules:
