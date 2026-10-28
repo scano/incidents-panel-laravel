@@ -1,191 +1,184 @@
 # Panel operativo de incidencias
 
-Prueba técnica Laravel / MySQL. Estado actual: entorno Docker, modelo de datos, servicio transaccional, panel Livewire y autenticación por sesión implementados. Incluye diagnóstico de inconsistencias con modo dry-run y corrección conservadora de duplicados.
+Aplicación de la prueba técnica mid/senior para registrar incidencias, consultar su seguimiento y diagnosticar inconsistencias conservando la trazabilidad. Implementada con Laravel, MySQL, Blade/Livewire y Tailwind CSS.
 
 ## Requisitos
 
-Solo Docker Engine con Docker Compose v2 o superior (o Docker Desktop), conexión a Internet para la instalación y los puertos locales 8000 y 5173 libres. No es necesario instalar PHP, Composer, Node ni MySQL en el equipo.
+Para la instalación incluida se necesita Docker Engine con Docker Compose v2 o Docker Desktop, conexión a Internet y los puertos locales 8000, 5173 y 3306 disponibles. Los puertos se pueden cambiar en `.env` mediante `APP_PORT`, `VITE_PORT` y `MYSQL_PORT`.
 
-El entorno utiliza Laravel 13, PHP 8.4, Composer 2, MySQL 8.4 y Node 24 con npm. Las imágenes fijan la rama de versión y reciben sus parches; `composer.lock` y `package-lock.json` fijan las dependencias de la aplicación.
+| Componente | Versión utilizada |
+| --- | --- |
+| PHP | 8.4 |
+| Laravel | 13 |
+| Composer | 2 |
+| MySQL | 8.4 |
+| Node.js / npm | Node.js 24, con npm incluido en la imagen |
+| Interfaz | Livewire 4, Tailwind CSS 4 y Alpine proporcionado por Livewire |
 
-## Instalación
+Docker ejecuta estas herramientas; no hace falta instalarlas en el equipo. Las versiones concretas de dependencias están fijadas en `composer.lock` y `package-lock.json`.
+
+## Instalación y ejecución
 
 Desde la raíz del repositorio:
 
 ```sh
 ./bin/setup
+
+# Cargar las incidencias de ejemplo después del arranque.
+docker compose exec app php artisan db:seed --no-interaction
 ```
 
-El script copia `.env.example` si falta `.env`, construye PHP con sus extensiones, instala dependencias, genera la clave si está vacía, compila los assets, espera a MySQL, prepara su base y usuario de pruebas, ejecuta migraciones, crea las cuentas de demostración en entorno local y levanta Laravel y Vite. Se puede volver a ejecutar: no borra los datos ni reemplaza la clave existente. La primera ejecución tarda más por la descarga y construcción de imágenes.
+Abrir [http://localhost:8000](http://localhost:8000). Vite se ejecuta en el puerto 5173 para servir los assets durante el desarrollo.
 
-Abrir http://localhost:8000 para acceder al panel operativo. El endpoint `/up` comprueba que la aplicación arranca; no comprueba la base de datos.
+El script de instalación:
 
-Para cambiar puertos, copiar primero `.env.example` a `.env` y ajustar `APP_PORT`, `APP_URL` y `VITE_PORT` antes de ejecutar el script. Vite está configurado para acceso local por `localhost`.
+1. Copia `.env.example` a `.env` si todavía no existe.
+2. Construye PHP, instala dependencias de Composer y npm, y compila los assets.
+3. Genera `APP_KEY` si está vacía.
+4. Arranca MySQL, ejecuta la migración y crea las cuentas de demostración.
+5. Arranca Laravel y Vite.
 
-## Acceso al panel
+El setup crea las cuentas, pero no carga las incidencias; el segundo comando carga 15 ejemplos con comentarios e historial coherente: 4 abiertos, 4 en revisión, 4 bloqueados y 3 resueltos. Repetir el seeder no duplica las muestras identificadas por título y solicitante `Ana (demo)`.
 
-El panel requiere iniciar sesión en `/login`. `./bin/setup` crea estas cuentas en el entorno local:
+La base principal se llama **`incidents`**. La instalación también prepara una base y un usuario exclusivos para pruebas. `.env.example` solo contiene credenciales de desarrollo local; `.env` está excluido de Git. `APP_KEY` es la clave secreta de cifrado de Laravel: conservarla entre arranques y no publicarla.
+
+Para cambiar puertos o credenciales antes de instalar, copiar `.env.example` a `.env` y ajustar sus valores. En un volumen MySQL ya inicializado, cambiar `DB_DATABASE`, el usuario o la contraseña en `.env` no crea ni renombra bases o cuentas existentes: deben ajustarse también en MySQL conservando los datos.
+
+Comandos de uso habitual:
+
+```sh
+# Levantar una instalación ya preparada.
+docker compose up -d
+
+# Comprobar o aplicar migraciones pendientes.
+docker compose exec app php artisan migrate:status
+docker compose exec app php artisan migrate --no-interaction
+
+# Cargar las cuentas y los datos coherentes de demostración.
+docker compose exec app php artisan db:seed --no-interaction
+
+# Consultar los registros.
+docker compose logs -f app node mysql
+
+# Compilar los assets después de cambios de frontend.
+docker compose run --rm --no-deps node npm run build
+
+# Detener conservando los datos.
+docker compose down
+```
+
+Los datos persisten en el volumen `mysql_data`. `docker compose down -v` elimina los volúmenes y los datos. La migración única está destinada a instalaciones nuevas; una base con el historial anterior de migraciones requiere reconciliar ese historial antes de aplicarla, sin reiniciar las tablas del panel.
+
+## Usuario de demostración
+
+El acceso requiere iniciar sesión. Las cuentas locales creadas por el setup son:
 
 | Usuario | Correo | Contraseña de demostración |
 | --- | --- | --- |
 | Ana | `ana@example.test` | `Incidencias123!` |
 | Luis | `luis@example.test` | `Incidencias123!` |
 
-En una instalación existente:
+El seeder no restablece contraseñas ni nombres de cuentas existentes y solo crea estas cuentas en entornos `local` y `testing`. Ambos usuarios pueden operar todas las incidencias. Se incluye acceso y cierre de sesión; no hay registro público, recuperación de contraseña ni roles.
 
-```sh
-docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed --class=UserSeeder
-```
+## Funcionalidades y recorrido de revisión
 
-El seeder solo crea cuentas en `local` y `testing`, y no restablece nombres o contraseñas si los correos ya existen. Las contraseñas se almacenan con hash. No hay registro público, recuperación de contraseña, roles ni permisos diferenciados: ambos usuarios pueden operar todas las incidencias.
+1. Acceder con una cuenta de demostración y consultar el listado con prioridad, estado, fecha, solicitante y responsable.
+2. Combinar búsqueda de texto y filtros de estado/prioridad. Los contadores permiten filtrar por estado y las incidencias bloqueadas aparecen resaltadas.
+3. Pulsar **Nueva incidencia**, completar el formulario y guardar. Se validan los datos, se crea el primer evento de historial y se actualizan el listado y los contadores.
+4. Abrir una incidencia y cambiar su estado. Bloquear o resolver solicita confirmación; reabrir una resuelta exige un motivo.
+5. Añadir un comentario y consultar las pestañas de comentarios e histórico. El autor se obtiene de la sesión y cada operación relevante deja un evento.
+6. Revisar el panel en escritorio y móvil; las validaciones se muestran junto al campo en español.
 
-El login utiliza el guard de sesión de Laravel, regenera la sesión al acceder y limita a cinco intentos fallidos por correo/IP durante 60 segundos. El cierre de sesión es un POST con CSRF, invalida la sesión y regenera el token. El panel usa middleware `auth`; los componentes Livewire comprueban también la autenticación en cada petición. Las credenciales incorrectas devuelven un mensaje genérico y la contraseña no se conserva en los datos del formulario.
+Livewire actualiza filtros, listado y contadores sin recargar toda la página. `IncidentDashboard`, `CreateIncident` e `IncidentDetail` mantienen el estado de sus vistas; los eventos `incident-created` e `incident-updated` coordinan su actualización. Alpine gestiona las pestañas y los diálogos. Los componentes delegan las escrituras en `IncidentService`.
 
-## Trabajo diario
+## Modelo de datos y decisiones técnicas
 
-```sh
-# Arrancar servicios ya instalados
-docker compose up -d
+Una única migración en `database/migrations/` crea las tablas necesarias:
 
-# Estado y registros
-docker compose ps
-docker compose logs -f app node mysql
+| Tabla | Finalidad |
+| --- | --- |
+| `incidents` | Título, descripción, estado, prioridad, solicitante, responsable y fechas. |
+| `incident_logs` | Acción, estado anterior/nuevo, actor, metadatos y fecha; marcas de duplicado para conservar evidencia. |
+| `incident_comments` | Comentario, autor y fechas de seguimiento. |
+| `users` | Cuentas para identificar a los actores de las operaciones. |
+| `sessions` | Sesiones de acceso. |
+| `cache`, `cache_locks` | Caché y bloqueos del driver de base de datos. |
 
-# Artisan, Composer y npm
-docker compose exec app php artisan migrate:status
-docker compose exec app php artisan test
-docker compose exec app composer install
-docker compose run --rm --no-deps node npm ci
-docker compose run --rm --no-deps node npm run build
+Laravel administra además la tabla `migrations`. No se crean tablas de colas ni de recuperación de contraseñas, porque el proyecto no utiliza esas funciones.
 
-# Detener conservando los datos
-docker compose down
-```
+- **Integridad:** claves foráneas de incidencias, usuarios y referencias a logs duplicados. Se restringe el borrado de registros con historial asociado.
+- **Consultas:** índices por estado/fecha, prioridad/fecha y fecha; comentarios y logs incluyen índices por incidencia, fecha e ID.
+- **Estados:** enums `IncidentStatus`, `IncidentPriority` e `IncidentAction` centralizan valores y evitan strings dispersos.
+- **Escrituras y trazabilidad:** `IncidentService` valida y guarda cada operación junto con su log en una transacción. Las actualizaciones de estado bloquean la incidencia y rechazan un estado observado desactualizado.
+- **Identidad:** logs y comentarios guardan `user_id` y una copia del nombre del actor. Los registros históricos o de mantenimiento pueden conservar `user_id = NULL` sin atribuirles una cuenta sin evidencia.
+- **Interfaz y seguridad:** autenticación por sesión, CSRF, validación en servidor y textos escapados. El actor de una operación web se resuelve en el servidor.
+- **Alcance:** aplicación pequeña con MySQL como único motor, sin roles avanzados, notificaciones, workers ni integraciones de negocio externas. Docker facilita la ejecución local.
 
-Las pruebas incluyen creación, validación, transiciones, reapertura, datos desactualizados, comentarios, autenticación y rollback si falla el log. Tanto la aplicación como las pruebas utilizan MySQL 8.4. La suite usa una base y un usuario exclusivos, separados del panel.
+Transiciones permitidas:
 
-## Modelo y reglas de negocio
-
-`incidents` contiene el estado actual; `incident_logs`, el historial de operaciones; `incident_comments`, el seguimiento. Las claves foráneas impiden borrar una incidencia con historial o comentarios. Hay índices por estado/fecha, prioridad/fecha y fecha, y para consultar el historial de cada incidencia. El historial se ordena por fecha e ID para desempatar eventos del mismo segundo. Las fechas se almacenan en UTC.
-
-Los enums `IncidentStatus`, `IncidentPriority` e `IncidentAction` centralizan los valores. Los estados y prioridades se guardan como strings para permitir cambios futuros mediante el código, sin depender de un ENUM específico de MySQL. Las escrituras operativas deben pasar por `App\Services\IncidentService`; escribir directamente con Eloquent o SQL omite estas reglas.
-
-| Estado actual | Destinos permitidos |
+| Estado actual | Destinos |
 | --- | --- |
 | Abierta | En revisión |
-| En revisión | Bloqueada, resuelta |
+| En revisión | Bloqueada o resuelta |
 | Bloqueada | En revisión |
-| Resuelta | Abierta, con motivo obligatorio y evento `reopened` |
+| Resuelta | Abierta, con motivo obligatorio |
 
-La creación siempre empieza abierta. En la interfaz, el actor de creación, los cambios de estado y los comentarios se obtienen del usuario autenticado; el navegador no envía su identidad. El solicitante es independiente, porque se puede registrar una incidencia en nombre de otra persona. Las prioridades admitidas son baja, media, alta y crítica.
-
-Cada operación valida datos y escribe la incidencia o comentario junto con su log en una transacción. Para cambiar un estado se obtiene la fila con `lockForUpdate`, se compara con el estado del modelo aportado por el llamador y se valida la transición antes de escribir. Esto rechaza estados desactualizados; el llamador debe conservar el estado que vio el usuario. No es un control de versiones completo: no detecta una secuencia de cambios que termina en el mismo estado inicial. La interfaz conserva este estado observado hasta actualizarlo explícitamente.
-
-La creación registra `created`; los cambios, `status_changed` o `reopened`; los comentarios, `comment_added` con el ID del comentario en los metadatos. Los logs de comentarios no representan transiciones y deberán excluirse al diagnosticar el último estado registrado. Los logs no tienen `updated_at` y no se ofrecen operaciones de edición o borrado.
-
-## Datos de ejemplo
-
-```sh
-docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed
-```
-
-Además de las dos cuentas de demostración, el seeder genera 15 incidencias (4 abiertas, 4 en revisión, 4 bloqueadas y 3 resueltas) mediante el servicio, con comentarios e historial válido. Repetirlo conserva las incidencias de demostración existentes sin duplicarlas, identificadas por título y solicitante `Ana (demo)`. Las inconsistencias deliberadas se introducen mediante un seeder independiente, descrito más abajo. Las factories sirven para preparar datos de pruebas; su creación directa no genera historial.
-
-## Pruebas con MySQL
-
-```sh
-docker compose exec app php artisan test
-```
-
-`phpunit.xml` selecciona obligatoriamente la conexión `mysql_testing`. Utiliza el mismo servidor MySQL 8.4, pero con la base fija `incidencias_testing` y el usuario `incidencias_test`, que solo tiene permisos sobre esa base. La conexión de pruebas no utiliza `DB_DATABASE`, `DB_USERNAME` ni `DB_URL`, para evitar que una variable de la aplicación redirija las pruebas a los datos del panel. Usa `DB_HOST`, `DB_PORT` y `DB_TEST_PASSWORD`.
-
-El script `docker/mysql/init-testing.sh` crea la base y el usuario en la primera inicialización de MySQL. `./bin/setup` también lo ejecuta expresamente para instalaciones con un volumen ya existente. Si se cambia `DB_TEST_PASSWORD`, hay que volver a ejecutar el setup para sincronizar la contraseña de la cuenta de pruebas.
-
-Para preparar únicamente la base de pruebas en una instalación existente:
-
-```sh
-docker compose up -d --wait mysql
-docker compose exec -T mysql sh /docker-entrypoint-initdb.d/10-testing.sh
-```
-
-La suite ejecuta migraciones y reinicializa las tablas de la base de pruebas. `Tests\TestCase` comprueba la conexión antes de continuar y aborta si la configuración no corresponde a la base y al usuario reservados. Si hay una configuración de Laravel cacheada de un entorno distinto, ejecutar `docker compose exec app php artisan config:clear` antes de las pruebas.
-
-Las pruebas verifican el comportamiento sobre MySQL, incluyendo transacciones y estado desactualizado. No simulan dos conexiones concurrentes.
-
-## Servicios y datos
-
-- `app`: servidor de desarrollo de Laravel en el puerto local 8000, con código montado desde este directorio. PHP incluye PDO MySQL, mbstring, intl, zip, bcmath y pcntl; la aplicación y las pruebas usan exclusivamente MySQL.
-- `mysql`: accesible desde `app` como `mysql:3306`. El healthcheck comprueba una consulta con el usuario de la aplicación. Los datos se guardan en el volumen `mysql_data`.
-- `node`: Vite con recarga en caliente en el puerto local 5173. `node_modules` vive en un volumen para evitar mezclar dependencias de macOS y Linux.
-
-Las credenciales de `.env.example` son exclusivamente locales. `.env` está excluido de Git. MySQL no expone puertos al host; la aplicación y Vite se publican solo en loopback. Este entorno usa `artisan serve` y está destinado al desarrollo local.
-
-Cambiar las variables de usuario o contraseña en `.env` no cambia usuarios de una base ya inicializada: MySQL solo utiliza esas variables al crear el volumen. Se deben actualizar las credenciales en MySQL o recrear sus datos deliberadamente.
-
-`docker compose down -v` elimina los volúmenes, **incluida toda la base de datos**. No es necesario para parar ni reiniciar el proyecto.
-
-## Uso del panel
-
-- **Nueva incidencia** abre el formulario. Al guardar, cierra el formulario, limpia los filtros, actualiza el listado y muestra una confirmación sin abrir el detalle.
-- La búsqueda consulta título, descripción, solicitante y responsable. Se combina con estado y prioridad; los filtros se reflejan en la URL y reinician la paginación. El listado muestra diez incidencias por página, con la más reciente primero. En escritorio las filas tienen scroll vertical independiente, con filtros y paginación fuera del área desplazable y cabeceras de columna visibles. En móvil y pantallas de menos de 1024 px se desplaza toda la página, sin limitar la altura del listado. Al cambiar de página o filtro, o crear una incidencia, el listado vuelve al inicio. La paginación usa textos en español y controles claros separados del resumen; en móvil muestra Anterior, posición de página y Siguiente.
-- Los contadores muestran totales globales, independientemente de los filtros. Pulsarlos activa o desactiva el filtro del estado correspondiente. Las incidencias bloqueadas se resaltan en el listado.
-- El título de una incidencia abre su detalle con las pestañas Datos de la incidencia, Comentarios e Histórico. El histórico tiene scroll propio y mantiene visibles la cabecera y las pestañas. La cabecera mantiene visibles el título, estado y prioridad. Las pestañas se manejan también con flechas, Inicio y Fin, y conservan los borradores al cambiar de sección. El actor se obtiene de la sesión y las reaperturas exigen un motivo. Bloquear y resolver solicitan confirmación en el navegador.
-- Si cambia el estado desde otra sesión, el intento de actualización se rechaza. **Actualizar datos** obtiene el estado actual para continuar.
-- Los comentarios toman el autor de la sesión y se registran junto con su evento. Se muestran del más reciente al más antiguo, con scroll propio y el formulario fijo debajo. Al publicar uno nuevo, se muestra arriba y el listado vuelve al inicio. Los textos se muestran escapados. Las validaciones se presentan en español junto al campo correspondiente.
-- Los diálogos mantienen el foco dentro de su contenido y se cierran con Escape, el botón de cierre o el fondo. Las animaciones respetan la preferencia de movimiento reducido. Las fechas se presentan en la zona Europe/Madrid.
-
-Los componentes `IncidentDashboard`, `CreateIncident` e `IncidentDetail` mantienen su propio estado de interfaz; todas las escrituras pasan por `IncidentService`. Los eventos `incident-created` e `incident-updated` coordinan el cierre del formulario y el refresco del listado y contadores. El estado observado del detalle y su ID están protegidos con `Locked`, para conservar la comprobación del servicio frente a datos desactualizados.
+La creación genera `created`; los cambios, `status_changed`; la reapertura, `reopened`; y los comentarios, `comment_added`. Los comentarios y las reparaciones no cuentan como transiciones al diagnosticar el último estado. La auditoría ordena los eventos por fecha e ID. Las fechas se almacenan en UTC y se presentan en Europe/Madrid.
 
 ## Diagnóstico y corrección de inconsistencias
 
-El diagnóstico es un comando Artisan independiente de la interfaz. Para preparar los tres casos del ejercicio en una instalación nueva:
+La demostración del ejercicio se realiza en la **base principal `incidents`**, con la conexión MySQL normal del panel. No requiere crear una base de pruebas ni ejecutar PHPUnit.
+
+### Preparar los tres casos
 
 ```sh
-docker compose exec app php artisan db:seed --class=InconsistentIncidentSeeder
+docker compose exec app php artisan db:seed --class=InconsistentIncidentSeeder --database=mysql --no-interaction
+docker compose exec app php artisan incidents:audit --dry-run
 ```
 
-Este seeder es opcional y no se ejecuta con `db:seed` por defecto. Crea tres incidencias con prefijo `[Auditoría demo]`; repetirlo no duplica incidencias ni reintroduce errores ya corregidos. No altera incidencias preexistentes fuera de esas muestras.
+El seeder crea tres incidencias con prefijo `[Auditoría demo]`. Es opcional, no se ejecuta en la carga estándar y no modifica otras incidencias. Repetirlo no duplica las muestras ni reintroduce inconsistencias ya corregidas.
 
 | Caso | Simulación | Decisión |
 | --- | --- | --- |
-| Resuelta sin log de resolución | Tras la revisión se actualiza directamente la fila a `resuelta` | Revisión manual: no sabemos quién resolvió ni cuándo; no se fabrica un evento histórico. |
-| Estado distinto del último log | La fila indica `bloqueada` y el último cambio registrado, `en_revision` | Revisión manual: ninguno de los dos datos demuestra por sí solo lo que ocurrió. |
-| Log duplicado | Se copia exactamente el cambio de abierta a revisión | Se marca la copia como duplicada, se conserva el original y se registra la reparación. |
+| Resuelta sin log de resolución | Se cambia directamente el estado a `resuelta` tras la revisión. | Revisión manual: faltan actor y fecha verificables; no se inventa un evento de resolución. |
+| Estado distinto del último log | La incidencia indica `bloqueada`, pero el último estado del historial es `en_revision`. | Revisión manual: hay que contrastar qué ocurrió antes de elegir el estado correcto. |
+| Log duplicado | Se copia exactamente el evento de paso de abierta a revisión. | Marcar la copia y registrar la reparación sin borrar el original. |
 
-La primera muestra genera dos hallazgos (falta de resolución y discrepancia), por lo que las tres incidencias producen **cuatro hallazgos** inicialmente.
+En una carga nueva, las tres muestras producen **cuatro hallazgos**: la primera también presenta discrepancia de estado.
+
+### Aplicar la corrección segura
 
 ```sh
-# Sin escrituras: comportamiento por defecto
-docker compose exec app php artisan incidents:audit
-# Opción explícita equivalente
+# Diagnosticar sin modificar datos; también es el comportamiento por defecto.
 docker compose exec app php artisan incidents:audit --dry-run
-# Aplicar solo correcciones seguras, firmadas por un actor
+
+# Marcar los duplicados exactos y registrar quién realiza la corrección.
 docker compose exec app php artisan incidents:audit --fix --actor="Mantenimiento"
-# Limitar el diagnóstico o la corrección a un ID real
-docker compose exec app php artisan incidents:audit --incident=9 --dry-run
+
+# Comprobar el resultado y la repetición sin nuevas correcciones.
+docker compose exec app php artisan incidents:audit --dry-run
+docker compose exec app php artisan incidents:audit --fix --actor="Mantenimiento"
 ```
 
-El ID del último ejemplo es ilustrativo; usar uno existente en el listado. `--fix` y `--dry-run` son incompatibles. Un ID desconocido, mal formado o un actor vacío se rechazan antes de escribir.
+Se puede añadir `--incident=ID` usando un ID real del panel para limitar el diagnóstico o la corrección a una incidencia. `--fix` y `--dry-run` son incompatibles.
 
-Códigos de salida: `0` sin hallazgos pendientes en las comprobaciones realizadas; `1` con hallazgos pendientes; `2` para opciones inválidas. Por eso un dry-run que encuentra los casos de ejemplo termina con código 1. Tras `--fix`, los dos casos ambiguos siguen presentes y el código continúa siendo 1: no significa que la reparación del duplicado haya fallado.
+`IncidentAuditService` recorre las incidencias por lotes de 100. Comprueba transiciones, continuidad del historial, resolución, reapertura con motivo y marcas de duplicado. Usa Query Builder con valores crudos para informar también de acciones o estados desconocidos.
 
-### Qué comprueba y cómo corrige
+Solo corrige eventos de estado válidos, consecutivos e idénticos en acción, valores, nombre e ID del actor, fecha y metadatos almacenados. Un ciclo de estados válido no se considera un duplicado. Los casos ambiguos quedan señalados para revisión manual.
 
-`IncidentAuditService` recorre incidencias por lotes de 100 y lee los logs ordenados por `(created_at, id)`. Usa Query Builder y valores crudos para poder informar de estados o acciones desconocidos sin fallar por los casts de los enums. Comprueba creación, transiciones permitidas, reapertura con motivo, continuidad de la cadena, coincidencia del estado actual y existencia de un evento válido de resolución. Los comentarios y eventos de reparación no son cambios de estado.
+La corrección añade `duplicate_of_id` y `voided_at` a la copia y crea un evento `duplicate_marked` con actor y evidencia original en `metadata`. El panel conserva los eventos originales y muestra la reparación. Se bloquean la incidencia y sus logs, se vuelve a diagnosticar y se guarda todo en una transacción por incidencia: si falla el evento de reparación, también se revierte la marca.
 
-Una copia solo es reparable automáticamente si es un evento de estado válido e idéntico al evento de estado anterior en acción, valores, actor, ID de usuario, fecha y metadatos almacenados. No debe existir otra transición entre ambos. Diferencias de actor, fecha o metadatos, cadenas incompletas, estados desconocidos y marcas de duplicado inválidas quedan para revisión. La comparación es deliberadamente estricta: dos JSON equivalentes con distinta representación pueden requerir revisión manual.
+En las muestras nuevas se espera un duplicado marcado y **tres hallazgos manuales pendientes**. Repetir `--fix` debe marcar cero duplicados adicionales. Los casos sin evidencia suficiente requieren investigar el estado real y documentar la intervención antes de corregirlos.
 
-La corrección no borra ni reescribe los valores históricos: añade `duplicate_of_id` y `voided_at` a la copia y genera un evento `duplicate_marked` con actor, fecha, IDs y una copia de los datos originales en `metadata`. El historial del panel muestra tanto la copia marcada como el evento de reparación. Los diagnósticos posteriores excluyen las copias cuya referencia al original idéntico puede verificarse. Repetir `--fix` no añade más marcas ni eventos.
-
-Cada incidencia se procesa en su propia transacción. En modo `--fix` se bloquean la incidencia y sus logs, y se vuelve a calcular el diagnóstico antes de modificar datos; si falla el nuevo evento de auditoría, también se revierte la marca. La atomicidad es por incidencia, no por toda la ejecución: si falla una incidencia posterior, las anteriores pueden estar ya corregidas. El bloqueo se coordina con el servicio de operaciones normal, que también bloquea la incidencia; no puede garantizar coordinación con escrituras externas que omitan ese protocolo. Las pruebas no simulan dos conexiones concurrentes.
-
-Los casos manuales se señalan en la salida del comando sin cambiar estado ni inventar logs. Para resolverlos hay que contrastar con evidencia externa, identificar el estado correcto y conservar la explicación, el actor y la fecha real de la intervención. El ejercicio permite dejarlos sin corrección automática cuando faltan datos.
+| Código de salida | Significado |
+| --- | --- |
+| `0` | Sin hallazgos pendientes en las comprobaciones realizadas. |
+| `1` | Quedan hallazgos; es el resultado esperado en la demostración, incluso tras corregir el duplicado. |
+| `2` | Opciones inválidas. |
 
 ### Consultas SQL de detección
 
-Estas consultas MySQL 8.4 se han ejecutado contra los ejemplos. Explican la detección de los tres casos; el servicio aplica además las validaciones descritas arriba antes de considerar un evento válido o una reparación segura.
+Se pueden ejecutar en MySQL 8.4 sobre `incidents`. Explican los tres casos; el servicio aplica además las validaciones de secuencia y reparación indicadas arriba.
 
 **Resueltas sin evento válido de resolución:** `NOT EXISTS` busca la ausencia de un cambio desde revisión a resuelta, con actor y sin marca de duplicado.
 
@@ -238,32 +231,27 @@ WHERE BINARY d.action = BINARY c.action
   AND d.created_at = c.created_at;
 ```
 
-El seeder estándar genera datos coherentes. Las muestras inconsistentes solo aparecen al ejecutar expresamente `InconsistentIncidentSeeder`; la suite las reconstruye en la base aislada de pruebas.
+## Pruebas automatizadas adicionales
 
-La autenticación y las cuentas de prueba se describen en «Acceso al panel». El panel utiliza Livewire 4 y Tailwind 4. La documentación de asistencia con IA está en `ai-process/README.md`.
+La comprobación del ejercicio es el recorrido del panel y la auditoría sobre `incidents` descritos arriba. El repositorio incluye además pruebas PHPUnit de operaciones, interfaz, autenticación, migraciones y auditoría.
 
-## Verificación del entorno
+La suite usa la conexión `mysql_testing`, la base `incidencias_testing` y el usuario `incidencias_test`, preparados por `bin/setup`. Usa el mismo servidor MySQL y la contraseña `DB_TEST_PASSWORD` (por defecto `local_test_password`). La suite reinicializa sus tablas y `Tests\TestCase` impide ejecutarla sobre la base del panel.
 
-Comprobado en Docker Desktop sobre macOS ARM64: instalación mediante `./bin/setup`, compilación de assets, migraciones ejecutadas en MySQL y respuesta HTTP 200 del panel autenticado y Vite, y redirección a `/login` para invitados. El servicio de dominio cuenta con 22 casos correctos (89 aserciones) ejecutados en MySQL 8.4. Además, los diez casos de interfaz pasan en MySQL 8.4. La suite completa contiene 62 casos y 326 aserciones correctas, ejecutados en MySQL 8.4. Los trece casos de auditoría cubren dry-run, repetición del seeder, corrección idempotente, conservación de evidencia, rollback, entradas inválidas, alcance por ID, datos desconocidos, ciclos válidos y falsos duplicados. Se revisó con Playwright en escritorio y móvil (390 px), incluyendo creación, cambio de estado, cancelación y aceptación de confirmación, comentarios, cierre con Escape y ausencia de desbordamiento horizontal. La base local se ha reiniciado después de esas comprobaciones con los seeders estándar.
+Si el entorno ya estaba instalado, preparar la base aislada:
 
-## Limpieza del esqueleto
+```sh
+docker compose up -d --wait mysql
+docker compose exec -T mysql sh /docker-entrypoint-initdb.d/10-testing.sh
+```
 
-Se retiraron la bienvenida, el comando de ejemplo `inspire` y `routes/console.php`, el controlador y proveedor vacíos, el modelo/factory de usuario inicial (reintroducido después al implementar el login), el test unitario trivial y la entrada JavaScript vacía. La prueba inicial de la portada se sustituyó por `IncidentPageTest`, que comprueba que se renderiza el panel. El comando `incidents:audit` se descubre desde `app/Console/Commands`.
+Ejecutar las pruebas:
 
-Vite compila el CSS; Livewire proporciona Alpine y el JavaScript de interacción. Se eliminaron Tinker, Pail, Pao, Concurrently y Multiplex, y los scripts de creación/desarrollo heredados. El arranque documentado sigue siendo `./bin/setup` y `docker compose up -d`. La cola queda configurada como síncrona, sin workers.
+```sh
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan test --compact
+```
 
-Se conservan las migraciones iniciales ya aplicadas para mantener su historial, incluida la que crea `sessions`. Las sesiones y la caché siguen utilizando MySQL. Tras añadir el login, el guard usa el modelo `User` de este proyecto; solo se ofrecen acceso y cierre de sesión. Se mantiene la configuración del framework y las herramientas de desarrollo que utiliza este proyecto, como PHPUnit, Pint y Boost.
 
-Una migración posterior elimina `jobs`, `failed_jobs`, `job_batches` y `password_reset_tokens`, porque el proyecto no utiliza colas en base de datos ni recuperación de contraseñas. Su reversión restaura la estructura de esas tablas.
+## Uso de IA
 
-## Identidad en el historial
-
-Los nuevos logs y comentarios de la interfaz guardan `user_id` como clave foránea nullable, además de `user_name` o `author_name` como copia del nombre en ese momento. Cambiar el nombre de una cuenta no modifica el historial previo; las relaciones `user()` permiten consultar la cuenta vinculada. Las claves foráneas impiden borrar usuarios con registros asociados.
-
-La migración añade las columnas sin atribuir los registros antiguos a cuentas nuevas. Los datos históricos anteriores al login y los eventos de mantenimiento pueden conservar un nombre declarado y `user_id = NULL`. Los seeders de incidencias actuales utilizan las cuentas Ana y Luis para guardar sus IDs y nombres en el historial y los comentarios. El servicio acepta un `User` para las operaciones autenticadas y nombres explícitos para los procesos internos de demostración/mantenimiento. Los componentes web siempre le pasan el usuario resuelto en el servidor. La auditoría compara también `user_id` al identificar duplicados, para distinguir cuentas con nombres iguales.
-
-Las pruebas de autenticación verifican redirección de invitados, login, errores y validación, regeneración de sesión, limitación de intentos, logout, protección directa de componentes, sesión caducada, rechazo de identidad inyectada, solicitante independiente, snapshots de nombre e idempotencia del seeder de cuentas.
-
-La autenticación se verificó también con Playwright: login de Ana, nombre visible en el panel, detalle sin campos manuales de identidad, revisión a 390 px, cierre de sesión y redirección de vuelta al acceso sin errores de consola.
-
-Se comprobó la inicialización de la base y la cuenta de pruebas tanto en el volumen existente como en una instancia MySQL temporal desde cero. El usuario de pruebas recibe acceso denegado al intentar abrir la base del panel.
+Se ha utilizado Codex como asistencia para código, interfaz, diagnóstico, pruebas y documentación.

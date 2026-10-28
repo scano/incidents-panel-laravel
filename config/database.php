@@ -11,7 +11,7 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', 'mysql'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'incidencias'),
+            'database' => env('DB_DATABASE', 'incidents'),
             'username' => env('DB_USERNAME', 'incidencias'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),

@@ -17,7 +17,7 @@ services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-incidencias}
+      MYSQL_DATABASE: ${DB_DATABASE:-incidents}
       MYSQL_USER: ${DB_USERNAME:-incidencias}
       MYSQL_PASSWORD: ${DB_PASSWORD:-local_password}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-local_root_password}

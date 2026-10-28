@@ -121,7 +121,8 @@
 	         tabindex="0" x-show="activeTab === 'comments'" x-cloak>
 
 		<section class="comments-section" aria-labelledby="comments-heading">
-			<h3 id="comments-heading">Comentarios <span class="count-pill">{{ $incident->comments->count() }}</span>
+			<h3 id="comments-heading">
+				Comentarios <span class="count-pill">{{ $incident->comments->count() }}</span>
 			</h3>
 
 			<div class="comments" x-ref="commentsList" tabindex="0" role="region" aria-label="Listado de comentarios, del más reciente al más antiguo">
@@ -156,7 +157,7 @@
 		<section class="history-section" aria-labelledby="history-heading"><h3 id="history-heading">Historial de cambios</h3>
 			<div class="history-list" tabindex="0" role="region" aria-label="Listado del historial de cambios">
 			<ol class="timeline">
-				@foreach($incident->logs as $log)
+				@foreach($incident->logs->reverse() as $log)
 					<li wire:key="log-{{ $log->id }}"><span class="timeline-dot"
 					                                        aria-hidden="true"></span><strong>{{ $log->action->label() }}</strong>
 						@if($log->duplicate_of_id)
