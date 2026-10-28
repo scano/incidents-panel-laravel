@@ -2,6 +2,16 @@
 
 Aplicación de la prueba técnica mid/senior para registrar incidencias, consultar su seguimiento y diagnosticar inconsistencias conservando la trazabilidad. Implementada con Laravel, MySQL, Blade/Livewire y Tailwind CSS.
 
+## Capturas
+
+Panel de incidencias con filtros y contadores por estado.
+
+![Panel de incidencias](public/screenshots/dashboard.webp)
+
+Detalle de una incidencia con pestañas de datos, comentarios e histórico.
+
+![Detalle de una incidencia](public/screenshots/incident-detail.webp)
+
 ## Requisitos
 
 Para la instalación incluida se necesita Docker Engine con Docker Compose v2 o Docker Desktop, conexión a Internet y los puertos locales 8000, 5173 y 3306 disponibles. Los puertos se pueden cambiar en `.env` mediante `APP_PORT`, `VITE_PORT` y `MYSQL_PORT`.
