@@ -19,6 +19,9 @@ Docker ejecuta estas herramientas; no hace falta instalarlas en el equipo. Las v
 
 ## Instalación y ejecución
 
+**Windows:** usar Docker Desktop con WSL 2 y contenedores Linux, con la integración de Docker habilitada para la distribución WSL. 
+Clonar el repositorio y ejecutar los comandos siguientes desde la terminal de WSL (por ejemplo, Ubuntu); `./bin/setup` requiere una shell Linux y no se ejecuta directamente en PowerShell.
+
 Desde la raíz del repositorio:
 
 ```sh
@@ -176,61 +179,6 @@ En las muestras nuevas se espera un duplicado marcado y **tres hallazgos manuale
 | `1` | Quedan hallazgos; es el resultado esperado en la demostración, incluso tras corregir el duplicado. |
 | `2` | Opciones inválidas. |
 
-### Consultas SQL de detección
-
-Se pueden ejecutar en MySQL 8.4 sobre `incidents`. Explican los tres casos; el servicio aplica además las validaciones de secuencia y reparación indicadas arriba.
-
-**Resueltas sin evento válido de resolución:** `NOT EXISTS` busca la ausencia de un cambio desde revisión a resuelta, con actor y sin marca de duplicado.
-
-```sql
-SELECT i.id, i.status
-FROM incidents AS i
-WHERE i.status = 'resuelta'
-  AND NOT EXISTS (
-    SELECT 1 FROM incident_logs AS l
-    WHERE l.incident_id = i.id AND l.duplicate_of_id IS NULL
-      AND l.action = 'status_changed'
-      AND l.old_value = 'en_revision' AND l.new_value = 'resuelta'
-      AND TRIM(l.user_name) <> ''
-  );
-```
-
-**Estado distinto del último log:** la ventana selecciona el último evento de estado por fecha e ID. El `LEFT JOIN` detecta también la ausencia de historial; `<=>` compara de forma segura cuando hay valores nulos.
-
-```sql
-WITH ranked AS (
-  SELECT id, incident_id, new_value,
-    ROW_NUMBER() OVER (PARTITION BY incident_id ORDER BY created_at DESC, id DESC) AS rn
-  FROM incident_logs
-  WHERE duplicate_of_id IS NULL AND action IN ('created', 'status_changed', 'reopened')
-)
-SELECT i.id, i.status, l.id AS log_id, l.new_value
-FROM incidents AS i
-LEFT JOIN ranked AS l ON l.incident_id = i.id AND l.rn = 1
-WHERE l.id IS NULL OR NOT (i.status <=> l.new_value);
-```
-
-**Candidatos a duplicado:** `LAG` identifica el evento de estado anterior de cada incidencia. La consulta exige igualdad de fecha, actor, acción, valores y JSON almacenado; los casts binarios evitan que la collation ignore diferencias de mayúsculas. Los ciclos válidos con transiciones intermedias no son duplicados.
-
-```sql
-WITH adjacent AS (
-  SELECT id, LAG(id) OVER (PARTITION BY incident_id ORDER BY created_at, id) AS previous_id
-  FROM incident_logs
-  WHERE duplicate_of_id IS NULL AND action IN ('created', 'status_changed', 'reopened')
-)
-SELECT d.incident_id, d.id AS duplicate_id, c.id AS canonical_id
-FROM adjacent AS a
-JOIN incident_logs AS d ON d.id = a.id
-JOIN incident_logs AS c ON c.id = a.previous_id
-WHERE BINARY d.action = BINARY c.action
-  AND (BINARY d.old_value <=> BINARY c.old_value)
-  AND (BINARY d.new_value <=> BINARY c.new_value)
-  AND BINARY d.user_name = BINARY c.user_name
-  AND (d.user_id <=> c.user_id)
-  AND (BINARY CAST(d.metadata AS CHAR) <=> BINARY CAST(c.metadata AS CHAR))
-  AND d.created_at = c.created_at;
-```
-
 ## Pruebas automatizadas adicionales
 
 La comprobación del ejercicio es el recorrido del panel y la auditoría sobre `incidents` descritos arriba. El repositorio incluye además pruebas PHPUnit de operaciones, interfaz, autenticación, migraciones y auditoría.
@@ -252,6 +200,8 @@ docker compose exec app php artisan test --compact
 ```
 
 
-## Uso de IA
+## Entorno de desarrollo
 
-Se ha utilizado Codex como asistencia para código, interfaz, diagnóstico, pruebas y documentación.
+- Host: macOS
+- IDE: PhpStorm de Jetbrains
+- IA: Codex
